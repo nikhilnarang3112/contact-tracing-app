@@ -39,4 +39,64 @@ public with sharing class CTPersonController {
         }
         return healthStatusCountMap;
     }
+
+    public static Set<Id> getCohabitants(Set<Id> personIds){
+        Set<Id> cohabitants = new Set<Id>();
+        List<String> healthStatus = new List<String>{'Green','Yellow'};
+        List<People_Tracing__c> traces = [
+            SELECT Person_1__c, Person_2__c FROM People_Tracing__c
+            WHERE (Person_1__c IN :personIds OR Person_2__c IN :personIds)
+            AND Contact_Type__c = 'Cohabitant'
+            AND (Person_1__r.Health_Status__c IN :healthStatus
+            OR Person_2__r.Health_Status__c IN :healthStatus)
+        ];
+        for (People_Tracing__c trace : traces) {
+            if (personIds.contains(trace.Person_1__c)) {
+                cohabitants.add(trace.Person_2__c);
+            } else {
+                cohabitants.add(trace.Person_1__c);
+            }
+        }
+        return cohabitants;
+    }
+
+    public static Set<Id> getNeighbours(Set<Id> personIds){
+        Set<Id> neighbours = new Set<Id>();
+        List<People_Tracing__c> traces = [
+            SELECT Person_1__c, Person_2__c FROM People_Tracing__c
+            WHERE (Person_1__c IN :personIds OR Person_2__c IN :personIds)
+            AND Contact_Type__c = 'Neighbour'
+            AND (Person_1__r.Health_Status__c = 'Green'
+            OR Person_2__r.Health_Status__c = 'Green')
+        ];
+        for (People_Tracing__c trace : traces) {
+            if (personIds.contains(trace.Person_1__c)) {
+                neighbours.add(trace.Person_2__c);
+            } else {
+                neighbours.add(trace.Person_1__c);
+            }
+        }
+        return neighbours;
+    }
+
+    public static Set<Id> getPrimaryContacts(Set<Id> personIds){
+        Set<Id> primaryContacts = new Set<Id>();
+        List<String> healthStatus = new List<String>{'Green','Yellow'};
+        List<People_Tracing__c> traces = [
+            SELECT Person_1__c, Person_2__c FROM People_Tracing__c
+            WHERE (Person_1__c IN :personIds OR Person_2__c IN :personIds)
+            AND Contact_Type__c = 'Other'
+            AND Contact_Date__c = LAST_N_DAYS:10
+            AND (Person_1__r.Health_Status__c IN :healthStatus
+            OR Person_2__r.Health_Status__c IN :healthStatus)
+        ];
+        for (People_Tracing__c trace : traces) {
+            if (personIds.contains(trace.Person_1__c)) {
+                primaryContacts.add(trace.Person_2__c);
+            } else {
+                primaryContacts.add(trace.Person_1__c);
+            }
+        }
+        return primaryContacts;
+    }
 }
