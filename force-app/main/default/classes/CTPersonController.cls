@@ -28,4 +28,15 @@ public with sharing class CTPersonController {
             return null;
         }
     }
+
+    public static Map<String, Integer> getHealthStatusCount(){
+        Map<String, Integer> healthStatusCountMap = new Map<String, Integer>();
+        for(AggregateResult ar : [
+            SELECT Health_Status__c, COUNT(Id) FROM Person__c
+            group by Health_Status__c
+        ]){
+            healthStatusCountMap.put((String)ar.get('Health_Status__c'), (Integer)ar.get('expr0'));
+        }
+        return healthStatusCountMap;
+    }
 }
