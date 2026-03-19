@@ -35,4 +35,38 @@ public with sharing class CTLocationController {
         }
         return statusCountMap;
     }
+
+    public static void updateRedScore(Set<Id> locationIds){
+        List<Location__c> locationsToUpdate = new List<Location__c>();
+        List<AggregateResult> list_Agr = [SELECT Location__c,COUNT(Person__c) totalRedCount FROM Location_Tracing__c
+        WHERE Location__c IN :locationIds 
+        AND Person__r.Health_Status__c = 'Red'
+        AND Visit_Date__c = LAST_N_DAYS:10
+        GROUP BY Location__c];
+        for(AggregateResult ar : list_Agr){
+            Integer totalRedCount = (Integer)ar.get('totalRedCount');
+            Location__c location = new Location__c(
+                Id = (Id)ar.get('Location__c'),
+                Red_Score__c = totalRedCount,
+                Status__c = getStatus(totalRedCount),
+                Status_Update_Date__c = Date.today()
+            );
+            locationsToUpdate.add(location);
+        }
+        if (!locationsToUpdate.isEmpty()) {
+            update locationsToUpdate;
+        }
+    }
+
+    public static String getStatus(Integer redScore){
+        if(redScore == 0){
+            return 'Green';
+        } else if(redScore <= 5){
+            return 'Yellow';
+        } else if(redScore <= 10){
+            return 'Orange';
+        } else{
+            return 'Red';
+        }
+    }
 }
